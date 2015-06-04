@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var app = require('../app')
+var knexConfig = require('../knexfile');
+var knex = require('knex')(knexConfig);
 
 /*
 This is a request handler for loading the main page. It will check to see if
@@ -54,7 +56,50 @@ router.post('/register', function(request, response) {
       password_confirm = request.body.password_confirm,
       database = app.get('database');
 
-  if (password === password_confirm) {
+
+  // knex('users').select('username')
+  // {
+  //   for(i=0;i<result.length;i++){
+  //     if(result[i].username===username){
+  //           response.render('index', {
+  //     title: 'Authorize Me!',
+  //     user: null,
+  //     error: "Username already used"
+  //   });
+
+  //     }
+  //   }
+   
+  
+
+ knex('users').where('username', username)
+    .then(function(result){
+      console.log(result)
+    
+      
+
+       // console.log(list)
+  //     if((knex.select('username').from('users')
+  //       .whereIn('username',username)===username)){
+  //       console.log("this")
+  //    response.render('index', {
+  //     title: 'Authorize Me!',
+  //     user: null,
+  //     error: "Username already used"
+  //   });
+
+  // }
+  if(result.length>0){
+    response.render('index', {
+      title: 'Authorize Me!',
+      user: null,
+      error: "Username already used"
+    });
+  }
+
+  else if (password === password_confirm) {
+    
+
     /*
     This will insert a new record into the users table. The insert
     function takes an object whose keys are column names and whose values
@@ -64,6 +109,9 @@ router.post('/register', function(request, response) {
     worked with before. insert({}).then(function() {...}) is very similar
     to insert({}, function() {...});
     */
+   
+
+
     database('users').insert({
       username: username,
       password: password,
@@ -91,6 +139,7 @@ router.post('/register', function(request, response) {
       error: "Password didn't match confirmation"
     });
   }
+  });
 });
 
 /*
