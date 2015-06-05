@@ -17,18 +17,22 @@ a user is logged in, and render the index page either way.
 */
 router.get('/', function(request, response, next) {
   var username;
+  var idz=request.cookies.id;
   /*
   Check to see if a user is logged in. If they have a cookie called
   "username," assume it contains their username
   */
   if (request.cookies.username) {
     username = request.cookies.username;
-     knex.column('body','person','post_at').select().from('messages')
-            .then(function(result){
-                console.log(result) 
+    knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
+      console.log(result)
+     // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
+     //        .then(function(result){
+     //            console.log(result) 
                 result.reverse()
                 response.render('main', { mess: result, name: result});
             });
+          // });
   } else {
     username = null;
     response.render('index', { title: 'Authorize Me!', username: username });
@@ -185,6 +189,7 @@ router.post('/login', function(request, response) {
   the supplied password.
   */
   database('users').where({'username': username}).then(function(records) {
+    console.log(records)
     /*
     We didn't find anything in the database by that username. Render the index
     page again, with an error message telling the user what's going on.
@@ -205,6 +210,7 @@ router.post('/login', function(request, response) {
         acknowledge that they're logged in.
         */
         response.cookie('username', username);
+        response.cookie('id',records[0].id)
         response.redirect('/');
       } else {
         /*
@@ -227,6 +233,7 @@ router.post('/', function(request, response){
       // var user_id= 
           database = app.get('database');
            database('messages').insert({
+                user_id:request.cookies.username,
                 person: username,
                 body: message,
       }) .then(function() {
@@ -247,12 +254,23 @@ router.post('/logout', function(request,response){
 })
 
 router.post('/follow', function(request,response){
+  var username = request.cookies.username;
   var following= request.body.follow,
   database = app.get('database'); 
-  database('users').insert({
-      following: following,
+  knex.column('following').select().from('users')
+  .then(function(){
+  knex('followers')
+  .insert({
+      use_id: request.cookies.id,
+      followers_id: following,
+  }).then(function(result){
+    knex.select('*').from('messages').join('followers', {'followers_id': 'messages.user_id'}).then(function(result){
+      console.log(result)
+    })
+     response.redirect('/');
   })
-
+ 
+})
 })
 
 module.exports = router;
