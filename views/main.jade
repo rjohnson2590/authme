@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  h1= 'Welcome!'
+  div
+     form(method="post" action="/" id="textual")
+       h2 Leave a Message
+       div
+          label Message:
+            textarea(type="text" name="type" placeholder="type-here")
+            input(type="submit")
+   #writeTo
+   ul
+     each val in mess
+      li=name +": " +val.body

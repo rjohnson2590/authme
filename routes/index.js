@@ -16,15 +16,22 @@ router.get('/', function(request, response, next) {
   */
   if (request.cookies.username) {
     username = request.cookies.username;
+     knex.column('body').select().from('messages')
+            .then(function(result){
+                console.log(result) 
+                response.render('main', { mess: result, name: username });
+            });
   } else {
     username = null;
-  }
+    response.render('index', { title: 'Authorize Me!', username: username });
+}
+  });
   /*
   render the index page. The username variable will be either null
   or a string indicating the username.
   */
-  response.render('index', { title: 'Authorize Me!', username: username });
-});
+
+  
 
 /*
 This is the request handler for receiving a registration request. It will
@@ -205,5 +212,22 @@ router.post('/login', function(request, response) {
     }
   });
 });
+
+router.post('/main', function(request, response){
+   
+  console.log("hello")
+  var username;
+      var message= request.body.type,
+          database = app.get('database');
+           database('messages').insert({
+                body: message,
+      }) .then(function() {
+            knex.column('body').select().from('messages')
+            .then(function(result){
+                console.log(result)
+                response.redirect('/'); 
+              });
+  })
+})
 
 module.exports = router;
