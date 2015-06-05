@@ -4,6 +4,13 @@ var app = require('../app')
 var knexConfig = require('../knexfile');
 var knex = require('knex')(knexConfig);
 
+
+function delete_cookie( name ) {
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
+
+
 /*
 This is a request handler for loading the main page. It will check to see if
 a user is logged in, and render the index page either way.
@@ -16,10 +23,11 @@ router.get('/', function(request, response, next) {
   */
   if (request.cookies.username) {
     username = request.cookies.username;
-     knex.column('body').select().from('messages')
+     knex.column('body','person','post_at').select().from('messages')
             .then(function(result){
                 console.log(result) 
-                response.render('main', { mess: result, name: username });
+                result.reverse()
+                response.render('main', { mess: result, name: result});
             });
   } else {
     username = null;
@@ -213,13 +221,13 @@ router.post('/login', function(request, response) {
   });
 });
 
-router.post('/main', function(request, response){
-   
-  console.log("hello")
-  var username;
+router.post('/', function(request, response){
+  var username = request.cookies.username;
       var message= request.body.type,
+      // var user_id= 
           database = app.get('database');
            database('messages').insert({
+                person: username,
                 body: message,
       }) .then(function() {
             knex.column('body').select().from('messages')
@@ -228,6 +236,23 @@ router.post('/main', function(request, response){
                 response.redirect('/'); 
               });
   })
+})
+
+router.post('/logout', function(request,response){
+  console.log("work?")
+  var username = request.cookies.username;
+  response.clearCookie("username")
+  response.redirect('/'); 
+
+})
+
+router.post('/follow', function(request,response){
+  var following= request.body.follow,
+  database = app.get('database'); 
+  database('users').insert({
+      following: following,
+  })
+
 })
 
 module.exports = router;

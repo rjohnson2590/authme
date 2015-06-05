@@ -1,8 +1,39 @@
 body {
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  background-color: purple;
+}
+h1{
+	display:block;
+	margin:auto;
+	padding: 25px;
+	text-align: center;
+	border: 5px solid black;
+	border-radius: 50%;
+
+}
+
+h1, h2{
+	color: gold;
 }
 
 a {
   color: #00B7FF;
+}
+
+li{
+	list-style: none;
+	border: 2px solid black;
+	padding: 5px;
+	margin-bottom: 5px;
+	color: gold;
+}
+
+.what{
+	color: gold;
+}
+
+.what textarea{
+	color:gold;
+	background-color: purple;
 }

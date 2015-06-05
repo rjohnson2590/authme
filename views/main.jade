@@ -1,15 +1,23 @@
 extends layout
 
 block content
-  h1= 'Welcome!'
+  h1= 'Please provide food to the text area in the form of words!'
   div
      form(method="post" action="/" id="textual")
        h2 Leave a Message
-       div
+       div(class="what")
           label Message:
             textarea(type="text" name="type" placeholder="type-here")
             input(type="submit")
    #writeTo
    ul
      each val in mess
-      li=name +": " +val.body
+      li=val.person +": " +val.body + val.post_at 
+
+   form(method='post' action='/logout')  
+    input(type='submit', name='logout', value="logout",id=log Out)
+
+   form(method='post' action='/follow')
+    textarea(type="text" name="follow" placeholder="type-here")  
+    input(type='submit', value='Follow')  
+       
