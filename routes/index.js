@@ -3,6 +3,9 @@ var router = express.Router();
 var app = require('../app')
 var knexConfig = require('../knexfile');
 var knex = require('knex')(knexConfig);
+var redis = require('redis');
+var cache= redis.createClient();
+
 
 
 function delete_cookie( name ) {
@@ -10,34 +13,74 @@ function delete_cookie( name ) {
 }
 
 
-
 /*
 This is a request handler for loading the main page. It will check to see if
 a user is logged in, and render the index page either way.
 */
+
+
 router.get('/', function(request, response, next) {
-  var username;
-  var idz=request.cookies.id;
-  /*
-  Check to see if a user is logged in. If they have a cookie called
-  "username," assume it contains their username
-  */
-  if (request.cookies.username) {
-    username = request.cookies.username;
-    knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
-      console.log(result)
-     // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
-     //        .then(function(result){
-     //            console.log(result) 
-                result.reverse()
-                response.render('main', { mess: result, name: result});
+  var tweets=request.cookies.username;
+  cache.lrange(tweets,0,-1, function(err, results){
+    if(results.length<1){
+      console.log("if")
+      var username;
+      var idz=request.cookies.id;
+      /*
+      Check to see if a user is logged in. If they have a cookie called
+      "username," assume it contains their username
+      */
+      if (request.cookies.username) {
+        username = request.cookies.username;
+        knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
+         // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
+         //        .then(function(result){
+                     
+              result.reverse()
+              response.render('main', {mess: result})
+            
+              for(i=0;i<result.length;i++){
+              cache.lpush(tweets,JSON.stringify(result[i]))
+              }
+          
+          
             });
-          // });
-  } else {
-    username = null;
-    response.render('index', { title: 'Authorize Me!', username: username });
-}
-  });
+                    // response.render('main', { mess: result, name: result});
+                // });
+              // });
+        } else {
+          username = null;
+          console.log("here")
+          response.render('index', { title: 'Authorize Me!', username: username });
+        }
+      }else{
+        console.log("else")
+          var username;
+      var idz=request.cookies.id;
+        if (request.cookies.username) {
+        username = request.cookies.username;
+        // knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
+         // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
+         //        .then(function(result){
+                     
+              var cResults= results.map(function(item){
+                return JSON.parse(item)
+              })
+              response.render('main', { mess: cResults})
+              // console.log(results)
+              // console.log(cResults)
+            // });
+                    
+               
+              // });
+        } else {
+          username = null;
+          console.log("here")
+          response.render('index', { title: 'Authorize Me!', username: username });
+        }
+      }
+})
+})
   /*
   render the index page. The username variable will be either null
   or a string indicating the username.
@@ -93,7 +136,7 @@ router.post('/register', function(request, response) {
 
  knex('users').where('username', username)
     .then(function(result){
-      console.log(result)
+     
     
       
 
@@ -189,7 +232,7 @@ router.post('/login', function(request, response) {
   the supplied password.
   */
   database('users').where({'username': username}).then(function(records) {
-    console.log(records)
+   
     /*
     We didn't find anything in the database by that username. Render the index
     page again, with an error message telling the user what's going on.
@@ -229,24 +272,32 @@ router.post('/login', function(request, response) {
 
 router.post('/', function(request, response){
   var username = request.cookies.username;
-      var message= request.body.type,
-      // var user_id= 
+      var message= request.body.type;
+      knex('followers').where({'followers_id': username}).select('use_id').then(function(result){
+      for(i=0;i<result.length;i++){
+        var seeValue = result[i].use_id;
+        console.log(seeValue)
+        cache.del(seeValue)
+      }
+    })
+      
           database = app.get('database');
            database('messages').insert({
                 user_id:request.cookies.username,
                 person: username,
                 body: message,
       }) .then(function() {
+       
             knex.column('body').select().from('messages')
             .then(function(result){
-                console.log(result)
+              
                 response.redirect('/'); 
               });
   })
 })
 
 router.post('/logout', function(request,response){
-  console.log("work?")
+  
   var username = request.cookies.username;
   response.clearCookie("username")
   response.redirect('/'); 
@@ -255,7 +306,8 @@ router.post('/logout', function(request,response){
 
 router.post('/follow', function(request,response){
   var username = request.cookies.username;
-  var following= request.body.follow,
+  var following= request.body.follow;
+  cache.del(username)
   database = app.get('database'); 
   knex.column('following').select().from('users')
   .then(function(){
@@ -265,7 +317,7 @@ router.post('/follow', function(request,response){
       followers_id: following,
   }).then(function(result){
     knex.select('*').from('messages').join('followers', {'followers_id': 'messages.user_id'}).then(function(result){
-      console.log(result)
+     
     })
      response.redirect('/');
   })
