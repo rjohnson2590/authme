@@ -12,7 +12,7 @@ block content
    #writeTo
    ul
      each val in mess
-      li=val.person +": " +val.body + val.post_at 
+      li=val.person + " "+ val.user_id+"(user's id)" + ": " +val.body + val.post_at 
 
    form(method='post' action='/logout')  
     input(type='submit', name='logout', value="logout",id=logOut)

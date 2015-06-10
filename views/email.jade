@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  h1 Please verify email.
+   div
+      form(method="post" action="/email/:nonce")
+        h2 Verify email
+         p Please click link to verify.
+        //- div
+        //-   label Enter verification:
+        //-     input(type="text" name="verify" placeholder="verify")
+        //- div
+        //-   input(type="submit" value="Thank you")

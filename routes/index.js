@@ -5,8 +5,16 @@ var knexConfig = require('../knexfile');
 var knex = require('knex')(knexConfig);
 var redis = require('redis');
 var cache= redis.createClient();
-
-
+var uuid = require('node-uuid');
+var nonce = uuid.v4();
+var nodemailer = require('nodemailer');
+var transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+          user: 'rjohnson25901@gmail.com',
+          pass: 'Beatles1@'
+            }
+    });
 
 function delete_cookie( name ) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -19,67 +27,61 @@ a user is logged in, and render the index page either way.
 */
 
 
+
 router.get('/', function(request, response, next) {
   var tweets=request.cookies.username;
   cache.lrange(tweets,0,-1, function(err, results){
     if(results.length<1){
-      console.log("if")
-      var username;
-      var idz=request.cookies.id;
-      /*
-      Check to see if a user is logged in. If they have a cookie called
-      "username," assume it contains their username
-      */
-      if (request.cookies.username) {
-        username = request.cookies.username;
-        knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
-         // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
-         //        .then(function(result){
-                     
-              result.reverse()
-              response.render('main', {mess: result})
-            
-              for(i=0;i<result.length;i++){
-              cache.lpush(tweets,JSON.stringify(result[i]))
-              }
-          
-          
-            });
-                    // response.render('main', { mess: result, name: result});
-                // });
-              // });
-        } else {
-          username = null;
-          console.log("here")
-          response.render('index', { title: 'Authorize Me!', username: username });
-        }
-      }else{
-        console.log("else")
+          console.log("if")
           var username;
-      var idz=request.cookies.id;
-        if (request.cookies.username) {
-        username = request.cookies.username;
-        // knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
-         // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
-         //        .then(function(result){
-                     
-              var cResults= results.map(function(item){
-                return JSON.parse(item)
-              })
-              response.render('main', { mess: cResults})
-              // console.log(results)
-              // console.log(cResults)
-            // });
+          var idz=request.cookies.id;
+          /*
+          Check to see if a user is logged in. If they have a cookie called
+          "username," assume it contains their username
+          */
+          if (request.cookies.username) {
+                username = request.cookies.username;
+                knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
+                 // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
+                 //        .then(function(result){
+                             
+                      result.reverse()
+                      response.render('main', {mess: result})
                     
-               
-              // });
-        } else {
-          username = null;
-          console.log("here")
-          response.render('index', { title: 'Authorize Me!', username: username });
-        }
-      }
-})
+                      for(i=0;i<result.length;i++){
+                      cache.lpush(tweets,JSON.stringify(result[i]))
+                              }
+                       });
+                            // response.render('main', { mess: result, name: result});
+                        // });
+                      // });
+            } else {
+                    username = null;
+                    console.log("here")
+                    response.render('index', { title: 'Authorize Me!', username: username });
+                  }
+      }else{
+          var username;
+          var idz=request.cookies.id;
+                if (request.cookies.username) {
+
+                    username = request.cookies.username;
+                    // knex.select('*').from('messages').join('followers', 'followers.followers_id', '=', 'messages.user_id').where('use_id',idz).then(function(result){
+                     // knex.column('body','person','post_at').select().from(result).where('followers_id',2)
+                     //        .then(function(result){
+                                 
+                          
+                          var cResults= results.map(function(item){
+                              return JSON.parse(item)
+                                  })
+                                        response.render('main', { mess: cResults})
+                          } else {
+                            username = null;
+                            console.log("here")
+                            response.render('index', { title: 'Authorize Me!', username: username });
+                                  }
+              }   
+  })
 })
   /*
   render the index page. The username variable will be either null
@@ -136,7 +138,7 @@ router.post('/register', function(request, response) {
 
  knex('users').where('username', username)
     .then(function(result){
-     
+  
     
       
 
@@ -152,14 +154,14 @@ router.post('/register', function(request, response) {
 
   // }
   if(result.length>0){
-    response.render('index', {
-      title: 'Authorize Me!',
-      user: null,
-      error: "Username already used"
-    });
+          response.render('index', {
+            title: 'Authorize Me!',
+            user: null,
+            error: "Username already used"
+          });
   }
 
-  else if (password === password_confirm) {
+    else if (password === password_confirm) {
     
 
     /*
@@ -170,14 +172,37 @@ router.post('/register', function(request, response) {
     This uses a "promise" interface. It's similar to the callbacks we've
     worked with before. insert({}).then(function() {...}) is very similar
     to insert({}, function() {...});
-    */
-   
+      */
+             var mailOptions= {
+              from: 'rjohnson25901@gmail.com',
+              to: request.body.email,
+              subject: 'hello',
+              text: 'Howdy',
+              html: '<a href="http://localhost:3000/email/'+nonce+'">CLick here to verify</a>'
+              };
+              console.log(request.body.email)
 
+    // database('users').insert({
+    //   username: username,
+    //   password: password,
+    // }).then(function() {
+                transporter.sendMail(mailOptions, function(error, info){
 
-    database('users').insert({
-      username: username,
-      password: password,
-    }).then(function() {
+                // knex('users').where('id',username).then(function(results){
+             
+                cache.set(nonce.toString(),nonce)
+                cache.set('username', username,function(err,reply){
+                  console.log(reply)
+                })
+                cache.set('password',password)
+                 // }) 
+                if(error){
+                      console.log(error);
+                  }else{
+                      console.log('Message sent: ' + info.response);
+                  }
+                
+         });
       /*
       Here we set a "username" cookie on the response. This is the cookie
       that the GET handler above will look at to determine if the user is
@@ -186,22 +211,30 @@ router.post('/register', function(request, response) {
       Then we redirect the user to the root path, which will cause their
       browser to send another request that hits that GET handler.
       */
-      response.cookie('username', username)
-      response.redirect('/');
-    });
+
+
+       // response.cookie('username', username)
+      
+             response.render('email')
+      // response.redirect('/email');
+
+    // });
   } else {
-    /*
-    The user mistyped either their password or the confirmation, or both.
-    Render the index page again, with an error message telling them what's
-    wrong.
-    */
-    response.render('index', {
-      title: 'Authorize Me!',
-      user: null,
-      error: "Password didn't match confirmation"
+            /*
+            The user mistyped either their password or the confirmation, or both.
+            Render the index page again, with an error message telling them what's
+            wrong.
+            */
+            response.render('index', {
+              title: 'Authorize Me!',
+              user: null,
+              error: "Password didn't match confirmation"
+            });
+          }
+
+
     });
-  }
-  });
+
 });
 
 /*
@@ -238,62 +271,66 @@ router.post('/login', function(request, response) {
     page again, with an error message telling the user what's going on.
     */
     if (records.length === 0) {
-        response.render('index', {
-          title: 'Authorize Me!',
-          user: null,
-          error: "No such user"
-        });
+              response.render('index', {
+                title: 'Authorize Me!',
+                user: null,
+                error: "No such user"
+              });
     } else {
-      var user = records[0];
-      if (user.password === password) {
-        /*
-        Hey, we found a user and the password matches! We'll give the user a
-        cookie indicating they're logged in, and redirect them to the root path,
-        where the GET request handler above will look at their cookie and
-        acknowledge that they're logged in.
-        */
-        response.cookie('username', username);
-        response.cookie('id',records[0].id)
-        response.redirect('/');
-      } else {
-        /*
-        There's a user by that name, but the password was wrong. Re-render the
-        index page, with an error telling the user what happened.
-        */
-        response.render('index', {
-          title: 'Authorize Me!',
-          user: null,
-          error: "Password incorrect"
-        });
-      }
-    }
-  });
+              var user = records[0];
+              if (user.password === password) {
+                        /*
+                        Hey, we found a user and the password matches! We'll give the user a
+                        cookie indicating they're logged in, and redirect them to the root path,
+                        where the GET request handler above will look at their cookie and
+                        acknowledge that they're logged in.
+                        */
+                        response.cookie('username', username);
+                        response.cookie('id',records[0].id)
+                        response.redirect('/');
+              } else {
+                /*
+                      There's a user by that name, but the password was wrong. Re-render the
+                      index page, with an error telling the user what happened.
+                      */
+                      response.render('index', {
+                        title: 'Authorize Me!',
+                        user: null,
+                        error: "Password incorrect"
+                      });
+                    }
+        }
+    });
 });
 
 router.post('/', function(request, response){
-  var username = request.cookies.username;
-      var message= request.body.type;
-      knex('followers').where({'followers_id': username}).select('use_id').then(function(result){
-      for(i=0;i<result.length;i++){
-        var seeValue = result[i].use_id;
-        console.log(seeValue)
-        cache.del(seeValue)
-      }
-    })
+            var username= request.cookies.username
+            var user_id = request.cookies.id;
+            var message= request.body.type;
+            knex('followers').where({'followers_id': user_id}).select('use_id').then(function(result){
+                    for(i=0;i<result.length;i++){
+                      knex('users').where({'id':result[i].use_id}).select('username').then(function(reply){
+                        console.log(reply[0])
+                          var seeValue = reply[0].username;
+                          console.log(seeValue)
+                          cache.del(seeValue)
+                      })
+                    }
+            })
       
-          database = app.get('database');
-           database('messages').insert({
-                user_id:request.cookies.username,
-                person: username,
-                body: message,
-      }) .then(function() {
-       
-            knex.column('body').select().from('messages')
-            .then(function(result){
-              
-                response.redirect('/'); 
-              });
-  })
+            database = app.get('database');
+            database('messages').insert({
+                    user_id:user_id,
+                    person: username,
+                    body: message,
+                      }) .then(function() {
+                     
+                          knex.column('body').select().from('messages')
+                            .then(function(result){
+                                        
+                                          response.redirect('/'); 
+                            });
+                        })
 })
 
 router.post('/logout', function(request,response){
@@ -301,7 +338,6 @@ router.post('/logout', function(request,response){
   var username = request.cookies.username;
   response.clearCookie("username")
   response.redirect('/'); 
-
 })
 
 router.post('/follow', function(request,response){
@@ -310,19 +346,47 @@ router.post('/follow', function(request,response){
   cache.del(username)
   database = app.get('database'); 
   knex.column('following').select().from('users')
-  .then(function(){
-  knex('followers')
-  .insert({
-      use_id: request.cookies.id,
-      followers_id: following,
-  }).then(function(result){
-    knex.select('*').from('messages').join('followers', {'followers_id': 'messages.user_id'}).then(function(result){
-     
-    })
-     response.redirect('/');
-  })
- 
+        .then(function(){
+            knex('followers')
+            .insert({
+                        use_id: request.cookies.id,
+                        followers_id: following,
+            }).then(function(result){
+                          knex.select('*').from('messages').join('followers', {'followers_id': 'messages.user_id'}).then(function(result){
+                            })
+               response.redirect('/');
+              })
+           
+        })
 })
-})
+
+
+router.get('/email/:nonce', function(request, response) {
+
+  var  database = app.get('database');
+    cache.get(request.params.nonce,function(err,userId) {
+      cache.get('username',function(err,username) {
+        cache.get('password',function(err,password) {
+            cache.del(request.params.nonce, function() {
+            if (userId) { 
+                  knex('users').returning('id').insert({
+                  username: username,
+                  password: password,
+                }).then(function(id){
+               // knex('users').where('username', ).then(function(records){
+                    response.cookie('id', id[0])
+                    response.cookie('username', username)
+                   response.redirect('/');
+                 })
+                } else {
+                response.render('index',
+                    {error: "That verification code is invalid!"});
+                  }
+            });
+              // })
+        });
+    });
+  });
+});
 
 module.exports = router;
