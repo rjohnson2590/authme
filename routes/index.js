@@ -392,7 +392,9 @@ router.get('/email/:nonce', function(request, response) {
                       pwd.hash(raw.password, function(err,salt,hash) {
                           stored = {name:raw.name, salt:salt, hash:hash};
                             console.log(stored); //==>
-                        })
+                           
+                        
+                    
                   knex('users').returning('id').insert({
                   username: username,
                   password: password,
@@ -404,7 +406,7 @@ router.get('/email/:nonce', function(request, response) {
                     response.cookie('username', username)
                    response.redirect('/');
                  })
-                } else {
+              })  } else {
                 response.render('index',
                     {error: "That verification code is invalid!"});
                   }
