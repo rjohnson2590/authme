@@ -8,6 +8,7 @@ var cache= redis.createClient();
 var uuid = require('node-uuid');
 var nonce = uuid.v4();
 var nodemailer = require('nodemailer');
+var pwd = require('pwd')
 var transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
@@ -15,6 +16,7 @@ var transporter = nodemailer.createTransport({
           pass: 'Beatles1@'
             }
     });
+
 
 function delete_cookie( name ) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -163,7 +165,7 @@ router.post('/register', function(request, response) {
 
     else if (password === password_confirm) {
     
-
+    // }
     /*
     This will insert a new record into the users table. The insert
     function takes an object whose keys are column names and whose values
@@ -285,6 +287,17 @@ router.post('/login', function(request, response) {
                         where the GET request handler above will look at their cookie and
                         acknowledge that they're logged in.
                         */
+                       function authenticate(attempt) {
+                         pwd.hash(attempt.password, stored.salt, function(err,hash) {
+                                  if (hash===stored.hash)
+                                  console.log('Success!')
+                         })
+                        }
+                              var raw = {name:user.username, password:user.password}
+
+                              var stored = {name:user.username, salt:user.salt, hash:user.hash}
+
+                        authenticate(raw)
                         response.cookie('username', username);
                         response.cookie('id',records[0].id)
                         response.redirect('/');
@@ -369,9 +382,22 @@ router.get('/email/:nonce', function(request, response) {
         cache.get('password',function(err,password) {
             cache.del(request.params.nonce, function() {
             if (userId) { 
+                  var raw = {name:username, password:password}
+
+                  var stored = {name:username, salt:'', hash:''}
+
+                  // function register(raw) {
+                    console.log('here is raw')
+                // Create and store encrypted user record:
+                      pwd.hash(raw.password, function(err,salt,hash) {
+                          stored = {name:raw.name, salt:salt, hash:hash};
+                            console.log(stored); //==>
+                        })
                   knex('users').returning('id').insert({
                   username: username,
                   password: password,
+                  hash: stored.hash,
+                  salt: stored.salt
                 }).then(function(id){
                // knex('users').where('username', ).then(function(records){
                     response.cookie('id', id[0])
